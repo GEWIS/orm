@@ -1,0 +1,20 @@
+diff --git a/lib/Doctrine/ORM/UnitOfWork.php b/lib/Doctrine/ORM/UnitOfWork.php
+index a3f179489..2896b0d32 100644
+--- a/lib/Doctrine/ORM/UnitOfWork.php
++++ b/lib/Doctrine/ORM/UnitOfWork.php
+@@ -2812,6 +2812,15 @@ class UnitOfWork implements PropertyChangedListener
+                         $joinColumnValue = $data[$srcColumn] ?? null;
+ 
+                         if ($joinColumnValue !== null) {
++                            // It was not possible to use backed enums in an association mapping as the value of
++                            // the enum was never used. The usage of the enum instance caused an exception.
++                            // See https://github.com/doctrine/orm/issues/10132 for more information.
++                            //
++                            // Patched:
++                            if ($joinColumnValue instanceof BackedEnum) {
++                                $joinColumnValue = $joinColumnValue->value;
++                            }
++
+                             if ($targetClass->containsForeignIdentifier) {
+                                 $associatedId[$targetClass->getFieldForColumn($targetColumn)] = $joinColumnValue;
+                             } else {
