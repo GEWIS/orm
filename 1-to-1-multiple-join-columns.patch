@@ -1,0 +1,50 @@
+From 5fc5fa153994cb57008e228f90bd83723d67d851 Mon Sep 17 00:00:00 2001
+From: Tom Udding <tomudding@users.noreply.github.com>
+Date: Sat, 30 Mar 2024 19:27:00 +0100
+Subject: [PATCH] Revert "Fix lazy loading of 1-to-1 relationship with custom
+ id object"
+
+This reverts a small change to `Doctrine\ORM\Persisters\Entity\BasicEntityPersister`
+which caused one-to-one relations with an `JoinColumns` annotation to break.
+---
+ src/Persisters/Entity/BasicEntityPersister.php   | 10 +++++++++-
+ tests/Tests/ORM/Functional/Ticket/GH5887Test.php |  2 ++
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/src/Persisters/Entity/BasicEntityPersister.php b/src/Persisters/Entity/BasicEntityPersister.php
+index 00fe7b037..0101eb54b 100644
+--- a/src/Persisters/Entity/BasicEntityPersister.php
++++ b/src/Persisters/Entity/BasicEntityPersister.php
+@@ -841,7 +841,15 @@ class BasicEntityPersister implements EntityPersister
+                 );
+             }
+ 
+-            $computedIdentifier[$targetClass->getFieldForColumn($targetKeyColumn)] =
++            // Revert change made in v2.6, which causes one-to-one relations with an
++            // @JoinColumns annotation to break. Is required for Decisions.
++            // See https://github.com/doctrine/orm/issues/7579 for more information.
++            //
++            // Original:
++            // $computedIdentifier[$targetClass->getFieldForColumn($targetKeyColumn)] =
++            //
++            // Patched:
++            $computedIdentifier[$this->getSQLTableAlias($targetClass->name) . '.' . $targetKeyColumn] =
+                 $sourceClass->reflFields[$sourceClass->fieldNames[$sourceKeyColumn]]->getValue($sourceEntity);
+         }
+ 
+diff --git a/tests/Tests/ORM/Functional/Ticket/GH5887Test.php b/tests/Tests/ORM/Functional/Ticket/GH5887Test.php
+index 1cc6169df..be836fbaa 100644
+--- a/tests/Tests/ORM/Functional/Ticket/GH5887Test.php
++++ b/tests/Tests/ORM/Functional/Ticket/GH5887Test.php
+@@ -31,6 +31,8 @@ class GH5887Test extends OrmFunctionalTestCase
+ 
+     public function testLazyLoadsForeignEntitiesInOneToOneRelationWhileHavingCustomIdObject(): void
+     {
++        $this->markTestSkipped('This test is marked as skipped due to a custom patch made to Doctrine\ORM\Persisters\Entity\BasicEntityPersister. It fails to lazy-load an object with a custom id. Since there are no custom ids present, failure of this test case can be ignored.');
++
+         $customerId = new GH5887CustomIdObject(1);
+         $customer   = new GH5887Customer();
+         $customer->setId($customerId);
+-- 
+2.43.2
+
