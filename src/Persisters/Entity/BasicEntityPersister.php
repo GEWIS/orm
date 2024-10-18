@@ -853,7 +853,17 @@ class BasicEntityPersister implements EntityPersister
                     $dataValue = $sourceEntityData[$sourceKeyColumn];
                     if ($dataValue !== null) {
                         $resolvedSourceData                                                    = true;
-                        $computedIdentifier[$targetClass->getFieldForColumn($targetKeyColumn)] =
+                        // The following was introduced in v2.19 to fix an issue related to
+                        // resolving inverse one-to-one relations. This should not impact our
+                        // specific issue, however, we believe we should replace all instances
+                        // of the affected code.
+                        // See https://github.com/doctrine/orm/issues/7579 for more information.
+                        //
+                        // Original:
+                        // $computedIdentifier[$targetClass->getFieldForColumn($targetKeyColumn)] =
+                        //
+                        // Patched:
+                        $computedIdentifier[$this->getSQLTableAlias($targetClass->name) . '.' . $targetKeyColumn] =
                             $dataValue;
                     }
                 }
@@ -865,7 +875,15 @@ class BasicEntityPersister implements EntityPersister
                     );
                 }
             } else {
-                $computedIdentifier[$targetClass->getFieldForColumn($targetKeyColumn)] =
+                // Revert change made in v2.6, which causes one-to-one relations with an
+                // @JoinColumns annotation to break. Is required for Decisions.
+                // See https://github.com/doctrine/orm/issues/7579 for more information.
+                //
+                // Original:
+                // $computedIdentifier[$targetClass->getFieldForColumn($targetKeyColumn)] =
+                //
+                // Patched:
+                $computedIdentifier[$this->getSQLTableAlias($targetClass->name) . '.' . $targetKeyColumn] =
                     $sourceClass->reflFields[$sourceClass->fieldNames[$sourceKeyColumn]]->getValue($sourceEntity);
             }
         }
