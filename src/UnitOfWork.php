@@ -3044,13 +3044,20 @@ EXCEPTION
                         $joinColumnValue = $data[$srcColumn] ?? null;
 
                         if ($joinColumnValue !== null) {
+                            $isBackedEnum = false;
+                            $originalJoinColumnValue = $joinColumnValue;
                             if ($joinColumnValue instanceof BackedEnum) {
                                 $joinColumnValue = $joinColumnValue->value;
+                                $isBackedEnum = true;
                             }
 
                             if ($targetClass->containsForeignIdentifier) {
                                 $associatedId[$targetClass->getFieldForColumn($targetColumn)] = $joinColumnValue;
                             } else {
+                                if ($isBackedEnum) {
+                                    $joinColumnValue = $originalJoinColumnValue;
+                                }
+
                                 $associatedId[$targetClass->fieldNames[$targetColumn]] = $joinColumnValue;
                             }
                         } elseif (in_array($targetClass->getFieldForColumn($targetColumn), $targetClass->identifier, true)) {
@@ -4083,3 +4090,4 @@ EXCEPTION
         $this->addToIdentityMap($entity);
     }
 }
+
