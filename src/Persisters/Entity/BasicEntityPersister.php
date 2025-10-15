@@ -819,7 +819,15 @@ class BasicEntityPersister implements EntityPersister
                     $dataValue = $sourceEntityData[$sourceKeyColumn];
                     if ($dataValue !== null) {
                         $resolvedSourceData                                                    = true;
-                        $computedIdentifier[$targetClass->getFieldForColumn($targetKeyColumn)] =
+                        // Revert change made in v2.6, which causes one-to-one relations with an
+                        // @JoinColumns annotation to break. Is required for Decisions.
+                        // See https://github.com/doctrine/orm/issues/7579 for more information.
+                        //
+                        // Original:
+                        // $computedIdentifier[$targetClass->getFieldForColumn($targetKeyColumn)] =
+                        //
+                        // Patched:
+                        $computedIdentifier[$this->getSQLTableAlias($targetClass->name) . '.' . $targetKeyColumn] =
                             $dataValue;
                     }
                 }
@@ -831,7 +839,15 @@ class BasicEntityPersister implements EntityPersister
                     );
                 }
             } else {
-                $computedIdentifier[$targetClass->getFieldForColumn($targetKeyColumn)] =
+                // Revert change made in v2.6, which causes one-to-one relations with an
+                // @JoinColumns annotation to break. Is required for Decisions.
+                // See https://github.com/doctrine/orm/issues/7579 for more information.
+                //
+                // Original:
+                // $computedIdentifier[$targetClass->getFieldForColumn($targetKeyColumn)] =
+                //
+                // Patched:
+                $computedIdentifier[$this->getSQLTableAlias($targetClass->name) . '.' . $targetKeyColumn] =
                     $sourceClass->propertyAccessors[$sourceClass->fieldNames[$sourceKeyColumn]]->getValue($sourceEntity);
             }
         }
